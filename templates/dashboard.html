@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+
+<!-- ✅ Toast container must go inside block content -->
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+            <div id="adviceToast" class="toast align-items-center bg-{{ category }}
+             {{ 'text-dark' if category in ['warning', 'info'] else 'text-white' }} border-0" role="success">
+                <div class="d-flex">
+                    <div class="toast-body">{{ message }}</div>
+                    <button type="button" class="btn-close 
+                    {{ 'btn-close-white' if category in ['success', 'danger'] else '' }}
+                      me-2 m-auto" data-bs-dismiss="toast"></button>
+                </div>
+            </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+</div>
+
+<!-- NEW -->
+<a class="btn btn-outline-primary" href="{{ url_for('give_advice') }}">
+  <i class="bi bi-pencil-square me-1"></i> Give Advice
+</a>
+
+
+<!-- Collapsible advice form -->
+<div class="collapse" id="adviceForm">
+    <div class="card mb-4 shadow">
+        <div class="card-body">
+            <h4 class="card-title">Add Patient</h4>
+            <form method="POST" action="{{ url_for('add_patient') }}" id="patientForm">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Name</label>
+                        <input name="name" class="form-control" required>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Age</label>
+                        <input name="age" type="number" class="form-control" required>
+                    </div>
+                    <div class="col-md-12">
+                        <label class="form-label">Complaint</label>
+                        <input name="complaint" class="form-control" required>
+                    </div>
+                    <div class="col-md-12">
+                        <label class="form-label">Advice</label>
+                        <input name="advice" class="form-control" required>
+                    </div>
+                    <div class="col-12 text-end">
+                        <button type="submit" class="btn btn-success">Submit Advice</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Patient list -->
+<div class="card shadow">
+    <div class="card-body">
+        <h4 class="card-title">Patients</h4>
+        {% if patients %}
+            <ul class="list-group">
+                {% for p in patients %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>{{ p.name }} ({{ p.age }}y) - Complaint: {{ p.complaint }}</div>
+                        <a href="{{ url_for('download', patient_id=p.id) }}" class="btn btn-sm btn-white text-primary">
+                            Download PDF
+                        </a>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p class="text-muted">No patients added yet.</p>
+        {% endif %}
+    </div>
+</div>
+
+<!-- JS to auto-hide form and toast -->
+<script>
+document.getElementById('patientForm').addEventListener('submit', function () {
+    const formCollapse = document.getElementById('adviceForm');
+    const collapseInstance = bootstrap.Collapse.getInstance(formCollapse) || new bootstrap.Collapse(formCollapse);
+    collapseInstance.hide();
+});
+
+window.addEventListener('DOMContentLoaded', function () {
+    const toastEl = document.getElementById('adviceToast');
+    if (toastEl) {
+        const toast = new bootstrap.Toast(toastEl, {
+            
+            delay: 3000,
+            autohide: true
+        });
+        toast.show();
+    }
+});
+</script>
+
+{% endblock %}
