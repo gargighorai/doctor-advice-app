@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}Manage PDFs{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+  <h3 class="mb-3">Saved PDFs</h3>
+
+  {% if pdfs %}
+    <table class="table table-bordered">
+      <thead>
+        <tr>
+          <th>Filename</th>
+          <th style="width: 200px;">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for pdf in pdfs %}
+        <tr>
+          <td>{{ pdf }}</td>
+          <td>
+            <a href="{{ url_for('download_pdf', filename=pdf) }}" class="btn btn-sm btn-outline-primary">Download</a>
+            <form method="POST" action="{{ url_for('delete_pdf', filename=pdf) }}" style="display:inline;">
+              <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete {{ pdf }}?')">Delete</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p>No PDF files found.</p>
+  {% endif %}
+</div>
+{% endblock %}

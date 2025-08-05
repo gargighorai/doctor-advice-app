@@ -17,7 +17,16 @@ import base64
 from datetime import datetime
 from flask import send_file, render_template
 from xhtml2pdf import pisa
+from functools import wraps
+from flask import abort
 
+def admin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not current_user.is_authenticated or not current_user.is_admin:
+            abort(403)
+        return f(*args, **kwargs)
+    return decorated_function
 
 
 app = Flask(__name__)
@@ -36,7 +45,7 @@ class Doctor(UserMixin, db.Model):
     name = db.Column(db.String(100))
     username = db.Column(db.String(100), unique=True)
     password = db.Column(db.String(100))
-
+    is_admin = db.Column(db.Boolean, default=False)
 class Drug(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), unique=True)
@@ -103,6 +112,40 @@ def dashboard():
     patients = Patient.query.filter_by(doctor_id=current_user.id).all()
     return render_template("dashboard.html", patients=patients)
 
+import os
+from flask import send_file, redirect, url_for, flash, render_template
+from flask_login import login_required
+
+PDF_DIR = os.path.join("static", "pdfs")
+
+@app.route('/pdfs')
+@login_required
+@admin_required
+def list_pdfs():
+    pdf_files = [f for f in os.listdir(PDF_DIR) if f.endswith('.pdf')]
+    return render_template('list_pdfs.html', pdfs=pdf_files)
+
+@app.route('/pdfs/download/<filename>')
+@login_required
+def download_pdf(filename):
+    path = os.path.join(PDF_DIR, filename)
+    if os.path.exists(path):
+        return send_file(path, as_attachment=True)
+    flash("File not found.", "danger")
+    return redirect(url_for('list_pdfs'))
+
+@app.route('/pdfs/delete/<filename>', methods=["POST"])
+@login_required
+@admin_required
+def delete_pdf(filename):
+    path = os.path.join(PDF_DIR, filename)
+    if os.path.exists(path):
+        os.remove(path)
+        flash(f"{filename} deleted successfully.", "success")
+    else:
+        flash("File not found.", "danger")
+    return redirect(url_for('list_pdfs'))
+
 @app.route('/add_patient', methods=["POST"])
 @login_required
 def add_patient():
@@ -156,6 +199,17 @@ def download(patient_id):
     filename = f"{patient.name.replace(' ', '_')} prescription.pdf"
 
     return send_file(pdf, download_name=filename, as_attachment=True)
+###----------------- PDF Management i.e. delete PDF----------------
+@app.route('/delete_pdf/<filename>')
+@login_required
+def delete_pdf(filename):
+    path = os.path.join("static", "pdfs", filename)
+    if os.path.exists(path):
+        os.remove(path)
+        flash(f"{filename} deleted.")
+    else:
+        flash("File not found.")
+    return redirect(url_for('dashboard'))
 
 # ---------------- Admin Drug Management ----------------
 
